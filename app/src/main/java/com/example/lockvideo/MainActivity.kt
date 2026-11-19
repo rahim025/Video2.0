@@ -37,21 +37,38 @@ class MainActivity : Activity() {
         layout.addView(b)
     }
 
+    private fun tryStart(i: Intent): Boolean {
+        return try {
+            startActivity(i)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun applyWallpaper() {
         val component = ComponentName(this, VideoWallpaperService::class.java)
-        try {
-            startActivity(
+        // 1. Méthode standard
+        if (tryStart(
                 Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER)
                     .putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT, component)
             )
-        } catch (e: Exception) {
-            try {
-                // Plan B : liste des fonds d'écran animés, choisis « Vidéo écran verrouillé »
-                startActivity(Intent(WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER))
-            } catch (e2: Exception) {
-                toast("Impossible d'ouvrir le sélecteur : " + e2.message)
-            }
-        }
+        ) return
+        // 2. Sélecteur Android de base
+        if (tryStart(
+                Intent().setClassName(
+                    "com.android.wallpaper.livepicker",
+                    "com.android.wallpaper.livepicker.LiveWallpaperActivity"
+                )
+            )
+        ) return
+        // 3. Liste des fonds d'écran animés
+        if (tryStart(Intent(WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER))) return
+        // 4. Choix général du fond d'écran
+        if (tryStart(Intent.createChooser(Intent(Intent.ACTION_SET_WALLPAPER), "Fond d'écran"))) return
+        // 5. Réglages d'affichage
+        toast("Ouvre Paramètres > Fond d'écran > Fonds d'écran animés > Vidéo écran verrouillé")
+        tryStart(Intent(android.provider.Settings.ACTION_DISPLAY_SETTINGS))
     }
 
     private fun pick(type: String, code: Int) {
